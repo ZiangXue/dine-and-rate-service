@@ -1,0 +1,107 @@
+/* For PostgreSQL you have to create the photo database yourself
+   with the createdb command line tool:
+
+   $ createdb photo
+
+   Then you will need to create a role that can read and write this
+   database:
+
+   $ psql -U postgres
+   postgres=# CREATE USER photoprism;
+   postgres=# GRANT ALL ON DATABASE photo TO photoprism;
+
+   Then use your new role and database to execute this script:
+
+   $ psql -U postgres -f thisfile photo
+
+   The order of the CREATEs might seem confusing, but we have to
+   avoid all forward references.  Hence the tables with few to no
+   dependencies have to be created first.  Be sure to check this
+   if you add any REFERENCES fields to any tables.
+ */
+
+-- the DROP TABLEs are in reverse order and here to make the whole
+-- script idempotent.
+
+DROP TABLE IF EXISTS Menu;
+DROP TABLE IF EXISTS Review;
+DROP TABLE IF EXISTS Person;
+DROP TABLE IF EXISTS Item;
+DROP TABLE IF EXISTS DiningHall;
+
+CREATE TABLE DiningHall
+(
+    DiningHallID    SERIAL PRIMARY KEY,
+    Name    VARCHAR(10) UNIQUE NOT NULL,
+    Campus  CHAR(3) NOT NULL
+);
+
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (1, 'Frary', 'POM');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (2, 'Frank', 'POM');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (3, 'Oldenborg', 'POM');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (4, 'Malott', 'SCR');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (5, 'Collins', 'CMC');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (6, 'McConnel', 'PZ');
+INSERT INTO DiningHall (DiningHallID, Name, Campus) VALUES (7, 'The Hoch', 'HMC');
+
+CREATE TABLE Item
+(
+    ItemID  INTEGER PRIMARY KEY,
+    Name    VARCHAR(100) NOT NULL,
+    Rating DOUBLE PRECISION,
+    RatingCount INT
+);
+
+CREATE TABLE Person
+(
+    PersonID  SERIAL PRIMARY KEY,
+    Name     VARCHAR(62),
+    Campus        VARCHAR(10),
+    Email         VARCHAR(64),
+    Username      VARCHAR(64)
+);
+
+INSERT INTO Person (PersonID, Name, Campus, Email, Username) VALUES (1, 'Ziang Xue', 'POM', 'ziangxue@outlook.com', 'ziangxue');
+
+CREATE TABLE Review
+(
+    ReviewID    SERIAL PRIMARY KEY,
+    ItemID INT REFERENCES Item,
+    Rating  INT NOT NULL,
+    Content VARCHAR(255),
+    PersonID INT REFERENCES Person,
+    Added TIMESTAMP WITH TIME ZONE
+);
+
+
+CREATE TABLE Menu(
+    MenuID    SERIAL PRIMARY KEY,
+    DiningHallID INT NOT NULL REFERENCES DiningHall,
+    ItemID INT NOT NULL REFERENCES Item,
+    Date    VARCHAR(10) NOT NULL,
+    Meal    VARCHAR(20) NOT NULL,
+    Station VARCHAR(30) NOT NULL
+);
+
+
+
+-- 2020-01-14 Potentially big danger: postgres 9.1 changed the
+-- default behavior to not recognize the escape sequence \' for a
+-- single quote in a string literal.
+--
+-- The actual SQL specification is '', which is what all code written
+-- by mikey uses.  But the JDBC driver generates \' in
+-- PreparedStatements.  Now that the \ is ignored, you have a SQL
+-- injection problem if you, like an idiot, used the "recommended" way
+-- to prevent SQL injection.
+--
+-- The old behavior, which interprets backslash escapes everywhere,
+-- can be obtained by changing this setting.  But this is obviously a
+-- bad bug in the JDBC driver.  Even when it is fixed, it seems
+-- pointlessly dangerous to disable backslash escapes in string
+-- literals.
+--
+-- (update) OK good news, the bug was fixed somewhere between 2004
+-- and 2020.
+--
+-- ALTER USER photoprism SET STANDARD_CONFORMING_STRINGS TO OFF;
