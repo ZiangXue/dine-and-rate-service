@@ -7,30 +7,24 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
 
 @Entity
-@Table(name = "person")
+@Table(name="item")
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class Person {
-
+public class Item {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @EqualsAndHashCode.Include
-    private Long personId;
+    private Long itemId;
 
     private String name;
-    private String campus;
-    private String email;
-    private String username;
-    
+    private Double rating;
+    private Integer ratingCount;
+
 }
